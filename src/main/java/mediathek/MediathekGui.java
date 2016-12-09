@@ -103,13 +103,6 @@ public class MediathekGui extends JFrame {
 
 
     private final Daten daten;
-//    private final SpacerIcon spacerIcon = new SpacerIcon(30);
-/*    private final JSpinner jSpinnerAnzahl = new JSpinner(new SpinnerNumberModel(1, 1, 9, 1));
-    private final JLabel jLabelAnzahl = new JLabel("Anzahl gleichzeitige Downloads");
-    private final JPanel jPanelAnzahl = new JPanel();
-    private final JLabel jLabelBandbreite = new JLabel("Bandbreite pro Download");
-    private final JPanel jPanelBandbreite = new JPanel();
-    private final JSlider jSliderBandbreite = new JSlider();*/
     private final SplashScreenManager splashScreenManager;
     private MVStatusBar statusBar;
     private MVFrame frameDownload;
@@ -197,6 +190,7 @@ public class MediathekGui extends JFrame {
 
         ProgStart.loadDataProgStart();
 
+        splashScreenManager.closeSplashScreen();
     }
 
     private void setSearchKeyForMac()
@@ -215,7 +209,7 @@ public class MediathekGui extends JFrame {
     private void initializeSettingsDialog()
     {
         // Dialog mit den Programmeinstellungen einrichten
-        dialogEinstellungen = new DialogEinstellungen(this, daten);
+        dialogEinstellungen = new DialogEinstellungen(daten);
         daten.setDialogMediaDB(new DialogMediaDB(this));
         daten.getDialogMediaDB().setVis();
     }
@@ -248,13 +242,11 @@ public class MediathekGui extends JFrame {
         jPanelInfo.add(js, BorderLayout.CENTER);
     }
 
-    private String readPfadFromArguments(final String[] aArguments)
-    {
+    private String readPfadFromArguments(final String[] aArguments) {
         String pfad;
-        if (aArguments != null)
-        {
+        if (aArguments == null) {
             pfad = "";
-        }else{
+        } else {
             printArguments(aArguments);
             if (aArguments.length > 0) {
                 if (!aArguments[0].startsWith(ARGUMENT_PREFIX)) {
@@ -262,10 +254,10 @@ public class MediathekGui extends JFrame {
                         aArguments[0] += File.separator;
                     }
                     pfad = aArguments[0];
-                }else {
+                } else {
                     pfad = "";
                 }
-            }else{
+            } else {
                 pfad = "";
             }
         }
@@ -294,7 +286,7 @@ public class MediathekGui extends JFrame {
      */
     protected void createFilmInformationHUD(JFrame parent, JTabbedPane tabPane, Daten daten) {
             //klappte nicht auf allen Desktops
-            Daten.filmInfo = new MVFilmInformationLWin(parent, tabPane, daten);
+        Daten.filmInfo = new MVFilmInformationLWin(parent);
     }
 
     private void addListener() {
@@ -1003,11 +995,6 @@ public class MediathekGui extends JFrame {
     public void showSettingsDialog()
     {
         dialogEinstellungen.setVisible(true);
-    }
-
-    public void hideSettingsDialog()
-    {
-        dialogEinstellungen.setVisible(false);
     }
 
     private void setMenuIcons()
