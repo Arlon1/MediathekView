@@ -44,6 +44,7 @@ import mediathek.gui.dialog.DialogMediaDB;
 import mediathek.gui.dialog.DialogStarteinstellungen;
 import mediathek.gui.dialogEinstellungen.DialogEinstellungen;
 import mediathek.gui.dialogEinstellungen.PanelBlacklist;
+import mediathek.gui.filmInformation.IFilmInformation;
 import mediathek.gui.filmInformation.MVFilmInformationLWin;
 import mediathek.gui.tools.AutomaticTabSwitcherMenuListener;
 import mediathek.res.GetIcon;
@@ -102,7 +103,7 @@ public class MediathekGui extends JFrame {
     private static final String CHECKBOX_TEXT_IN_EXTRAFENSTER = "in Extrafenster";
 
 
-    private final Daten daten;
+    protected final Daten daten;
     private final SplashScreenManager splashScreenManager;
     private MVStatusBar statusBar;
     private MVFrame frameDownload;
@@ -149,14 +150,18 @@ public class MediathekGui extends JFrame {
     public MediathekGui(String... aArguments) {
         super();
 
-        aboutAction = new ShowAboutDialogAction(this);
-        settingsAction = new ShowSettingsAction();
-
         splashScreenManager = new SplashScreenManager();
         splashScreenManager.initializeSplashScreen();
 
         initComponents();
+
         String pfad = readPfadFromArguments(aArguments);
+        daten = Daten.getInstance(pfad, this);
+
+        aboutAction = new ShowAboutDialogAction(this);
+        settingsAction = new ShowSettingsAction();
+        loadFilmlistAction = new LoadFilmListAction();
+
 
         Duration.counterStart(LOG_TEXT_PROGRAMMSTART);
 
@@ -164,8 +169,6 @@ public class MediathekGui extends JFrame {
         disableF10Key();
 
         splashScreenManager.updateSplashScreenText(SPLASHSCREEN_TEXT_ANWENDUNGSDATEN_LADEN);
-
-        daten = Daten.getInstance(pfad,this);
 
         startMeldungen();
         Duration.staticPing(LOG_TEXT_START);
@@ -175,7 +178,7 @@ public class MediathekGui extends JFrame {
         Duration.staticPing(LOG_TEXT_START_GUI);
         createStatusBar();
 
-        createFilmInformationHUD(this, jTabbedPane, daten);
+        createFilmInformationHUD(jTabbedPane, daten);
 
         setOrgTitel();
         setLookAndFeel();
@@ -196,6 +199,12 @@ public class MediathekGui extends JFrame {
         ProgStart.loadDataProgStart();
 
         splashScreenManager.closeSplashScreen();
+    }
+
+    protected IFilmInformation filmInfo = null; // Infos zum Film
+
+    public IFilmInformation getFilmInformationHud() {
+        return filmInfo;
     }
 
     private void setupMediaDB()
@@ -231,9 +240,9 @@ public class MediathekGui extends JFrame {
     private void createStatusBar() {
         statusBar = new MVStatusBar();
         JScrollPane js = new JScrollPane();
-        js.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        js.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        js.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        js.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        js.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        js.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         js.setViewportView(statusBar.getComponent());
         jPanelInfo.add(js, BorderLayout.CENTER);
     }
@@ -280,9 +289,9 @@ public class MediathekGui extends JFrame {
     /**
      * Create the film information tool window.
      */
-    protected void createFilmInformationHUD(JFrame parent, JTabbedPane tabPane, Daten daten) {
+    protected void createFilmInformationHUD(JTabbedPane tabPane, Daten daten) {
             //klappte nicht auf allen Desktops
-        Daten.filmInfo = new MVFilmInformationLWin(parent);
+        filmInfo = new MVFilmInformationLWin(this);
     }
 
     private void addListener() {
@@ -406,17 +415,11 @@ public class MediathekGui extends JFrame {
         daten.getFilmeLaden().addAdListener(new ListenerFilmeLaden() {
             @Override
             public void start(ListenerFilmeLadenEvent event) {
-                jMenuItemFilmlisteLaden.setEnabled(false);
                 jMenuItemDownloadsAktualisieren.setEnabled(false);
             }
 
             @Override
-            public void progress(ListenerFilmeLadenEvent event) {
-            }
-
-            @Override
             public void fertig(ListenerFilmeLadenEvent event) {
-                jMenuItemFilmlisteLaden.setEnabled(true);
                 jMenuItemDownloadsAktualisieren.setEnabled(true);
                 daten.allesSpeichern(); // damit nichts verlorengeht
             }
@@ -454,19 +457,22 @@ public class MediathekGui extends JFrame {
 
     private static boolean geklickt;
 
+    /**
+     * Points to the GuiDebug panel instance.
+     */
+    public GuiDebug guiDebug = null;
+
     private void initTabs() {
         Daten.guiDownloads = new GuiDownloads(daten, this);
         Daten.guiAbo = new GuiAbo(daten, this);
         Daten.guiMeldungen = new GuiMeldungen(daten, this);
         Daten.guiFilme = new GuiFilme(daten, this);
 
-        //jTabbedPane.addTab("Filme", Icons.ICON_TAB_FILM, Daten.guiFilme);
         jTabbedPane.addTab(TABNAME_FILME, Daten.guiFilme);
 
-        if (Daten.isDebug()) {
-            Daten.guiDebug = new GuiDebug(daten);
-            //jTabbedPane.addTab("Debug", spacerIcon, Daten.guiDebug);
-            jTabbedPane.addTab(TABNAME_DEBUG, Daten.guiDebug);
+        if (daten.isDebug()) {
+            guiDebug = new GuiDebug(daten);
+            jTabbedPane.addTab(TABNAME_DEBUG, guiDebug);
         }
         initFrames();
         jTabbedPane.addChangeListener(l -> {
@@ -573,7 +579,7 @@ public class MediathekGui extends JFrame {
         } else {
             jTabbedPane.setTabPlacement(JTabbedPane.LEFT);
         }
-//            jTabbedPane.updateUI();
+
         for (int i = 0; i < jTabbedPane.getTabCount(); ++i) {
             Component c = jTabbedPane.getComponentAt(i);
             ImageIcon ic = null;
@@ -605,7 +611,7 @@ public class MediathekGui extends JFrame {
                     ic = top ? Icons.ICON_TAB_TOP_MELDUNG_SW : Icons.ICON_TAB_MELDUNG_SW;
                 }
             }
-            if (c.equals(Daten.guiDebug)) {
+            if (c.equals(daten.getMediathekGui().guiDebug)) {
                 if (jTabbedPane.getSelectedIndex() == i) {
                     ic = top ? Icons.ICON_TAB_TOP_MELDUNG : Icons.ICON_TAB_MELDUNG;
                 } else {
@@ -613,18 +619,23 @@ public class MediathekGui extends JFrame {
                 }
             }
             String s = jTabbedPane.getTitleAt(i);
-            JLabel lbl = makeLabel(s, ic);
+            JLabel lbl = makeTabbedPaneLabel(s, ic);
             if (icon) {
                 jTabbedPane.setTabComponentAt(i, lbl);
             } else {
                 jTabbedPane.setTabComponentAt(i, null);
             }
         }
-
-//            jTabbedPane.updateUI();
     }
 
-    private JLabel makeLabel(String text, ImageIcon ic) {
+    /**
+     * Create {@link JLabel} with an icon and text for the {@link JTabbedPane} header.
+     *
+     * @param text label text.
+     * @param ic   provided icon.
+     * @return the ready {@link JLabel}
+     */
+    private JLabel makeTabbedPaneLabel(String text, ImageIcon ic) {
         JLabel lbl = new JLabel(text);
 
         lbl.setBorder(null);
@@ -798,6 +809,7 @@ public class MediathekGui extends JFrame {
 
     protected Action aboutAction = null;
     protected Action settingsAction = null;
+    public Action loadFilmlistAction = null;
 
     private void initializeAnsichtDownloads()
     {
@@ -856,8 +868,6 @@ public class MediathekGui extends JFrame {
 
     private void initializeFilmeMenu()
     {
-        // Filme
-        jMenuItemFilmlisteLaden.addActionListener(e -> daten.getFilmeLaden().loadFilmlistDialog(daten, false));
         jMenuItemFilmAbspielen.addActionListener(e -> Daten.guiFilme.guiFilmeFilmAbspielen());
         jMenuItemFilmAufzeichnen.addActionListener(e -> Daten.guiFilme.guiFilmeFilmSpeichern());
         jMenuItemFilterLoeschen.addActionListener(e -> Daten.guiFilme.guiFilmeFilterLoeschen());
@@ -871,11 +881,17 @@ public class MediathekGui extends JFrame {
         jMenuItemFilmeMediensammlung.addActionListener(e -> Daten.guiFilme.guiFilmMediensammlung());
     }
 
-    protected void initializeDateiMenu()
+    protected void installSettingsAndTerminateMenuItems()
     {
         jMenuDatei.add(settingsAction);
         jMenuDatei.add(new JSeparator());
         jMenuDatei.add(new TerminateApplicationAction());
+    }
+
+    private void initializeDateiMenu() {
+        jMenuItemFilmlisteLaden.setAction(loadFilmlistAction);
+
+        installSettingsAndTerminateMenuItems();
     }
 
     class ShowSettingsAction extends AbstractAction {
@@ -909,10 +925,36 @@ public class MediathekGui extends JFrame {
         }
     }
 
-    private void setMenuIcons()
-    {
-        //Icons setzen
-        jMenuItemFilmlisteLaden.setIcon(Icons.ICON_MENUE_FILMLISTE_LADEN);
+    class LoadFilmListAction extends AbstractAction {
+        public LoadFilmListAction() {
+            super("Neue Filmliste laden...", Icons.ICON_MENUE_FILMLISTE_LADEN);
+            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
+            putValue(SHORT_DESCRIPTION, "Lade eine neue Filmliste");
+
+            daten.getFilmeLaden().addAdListener(new ListenerFilmeLaden() {
+                @Override
+                public void start(ListenerFilmeLadenEvent event) {
+                    setEnabled(false);
+                }
+
+                @Override
+                public void fertig(ListenerFilmeLadenEvent event) {
+                    setEnabled(true);
+                }
+            });
+
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            daten.getFilmeLaden().loadFilmlistDialog(daten, false);
+        }
+    }
+
+    /**
+     * Set the icons for menu items.
+     */
+    private void setMenuIcons() {
         jMenuItemFilmAbspielen.setIcon(Icons.ICON_MENUE_FILM_START);
         jMenuItemFilmAufzeichnen.setIcon(Icons.ICON_MENUE_FILM_REC);
         jMenuItemFilmeGesehen.setIcon(Icons.ICON_MENUE_HISTORY_ADD);
@@ -999,7 +1041,7 @@ public class MediathekGui extends JFrame {
      *
      * @param showOptionTerminate show options dialog when downloads are running
      * @param shutDown            try to shutdown the computer if requested
-     * @return
+     * @return true if the user wants to terminate
      */
     public boolean beenden(boolean showOptionTerminate, boolean shutDown) {
         if (daten.getListeDownloads().nochNichtFertigeDownloads() > 0) {
@@ -1145,14 +1187,13 @@ public class MediathekGui extends JFrame {
 
         jPanelInfo.setLayout(new java.awt.BorderLayout());
         jPanelCont.add(jPanelInfo, java.awt.BorderLayout.PAGE_END);
-
-        jTabbedPane.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 1, 1, 1));
         jPanelCont.add(jTabbedPane, java.awt.BorderLayout.CENTER);
+
+        getContentPane().add(jPanelCont, java.awt.BorderLayout.CENTER);
 
         jMenuDatei.setMnemonic('d');
         jMenuDatei.setText("Datei");
 
-        jMenuItemFilmlisteLaden.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0));
         jMenuItemFilmlisteLaden.setText("Neue Filmliste laden");
         jMenuDatei.add(jMenuItemFilmlisteLaden);
 
@@ -1344,19 +1385,6 @@ public class MediathekGui extends JFrame {
         jMenuBar.add(jMenuHilfe);
 
         setJMenuBar(jMenuBar);
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanelCont, javax.swing.GroupLayout.DEFAULT_SIZE, 1083, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(6, 6, 6)
-                .addComponent(jPanelCont, javax.swing.GroupLayout.DEFAULT_SIZE, 827, Short.MAX_VALUE))
-        );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents

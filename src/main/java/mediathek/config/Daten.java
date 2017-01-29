@@ -33,9 +33,11 @@ import mediathek.controller.MVUsedUrls;
 import mediathek.controller.starter.StarterClass;
 import mediathek.daten.*;
 import mediathek.filmlisten.FilmeLaden;
-import mediathek.gui.*;
+import mediathek.gui.GuiAbo;
+import mediathek.gui.GuiDownloads;
+import mediathek.gui.GuiFilme;
+import mediathek.gui.GuiMeldungen;
 import mediathek.gui.dialog.DialogMediaDB;
-import mediathek.gui.filmInformation.IFilmInformation;
 import mediathek.tool.GuiFunktionen;
 import mediathek.tool.MVFont;
 import mediathek.tool.MVMessageDialog;
@@ -90,14 +92,12 @@ public class Daten
     public StarterClass starterClass = null; // Klasse zum Ausführen der Programme (für die Downloads): VLC, flvstreamer, ...
 
     // Gui
-    private MediathekGui mediathekGui; // JFrame der Gui
+    private final MediathekGui mediathekGui; // JFrame der Gui
     public static GuiFilme guiFilme = null; // Tab mit den Filmen
     public static GuiDownloads guiDownloads = null; // Tab mit den Downloads
     public static GuiAbo guiAbo = null; // Tab mit den Abos
-    public static GuiDebug guiDebug = null;
     public static GuiMeldungen guiMeldungen = null;
 
-    public static IFilmInformation filmInfo = null; // Infos zum Film
     private DialogMediaDB dialogMediaDB;
 
     private boolean alreadyMadeBackup = false;
