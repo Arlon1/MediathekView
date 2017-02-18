@@ -1,8 +1,8 @@
 package mediathek.mac;
 
 import com.apple.eawt.Application;
-import mediathek.controller.starter.Start;
 import mediathek.config.Daten;
+import mediathek.controller.starter.Start;
 import mediathek.daten.DatenDownload;
 
 import java.awt.*;
@@ -25,7 +25,7 @@ class OsxIndicatorThread extends Thread {
     private BufferedImage newApplicationIcon = null;
     private final int appIconWidth;
     private final int appIconHeight;
-    private double oldPercentage;
+    private double oldPercentage = 0.0;
     private boolean bFirstUpdate = true;
     private final Application application = Application.getApplication();
 
@@ -65,7 +65,7 @@ class OsxIndicatorThread extends Thread {
                 //only count running/active downloads and calc accumulated progress..
                 LinkedList<DatenDownload> activeDownloadList = daten.getListeDownloads().getListOfStartsNotFinished(DatenDownload.QUELLE_ALLE);
                 for (DatenDownload download : activeDownloadList) {
-                    if (download.start != null && download.start.status == Start.STATUS_RUN) {
+                    if (download.start.status == Start.STATUS_RUN) {
                         numOfDownloadsActive++;
                         accumPercentage += download.start.percent / 10.0;
                     }
@@ -94,6 +94,7 @@ class OsxIndicatorThread extends Thread {
         } finally {
             //reset the application dock icon
             application.setDockIconImage(OsxApplicationIconImage);
+            oldPercentage = 0.0;
         }
     }
 }
